@@ -92,9 +92,10 @@ TOOLTIP_STYLE = {
 _TAB_LABELS = ["Global Stress Map", "Country Analysis", "Country Comparison"]
 
 _SS_DEFAULTS = {
-    '_last_map_click':   None,
-    '_drill_country':    None,
-    '_pending_nav':      None,    # staged tab label for programmatic navigation
+    '_last_map_click':          None,
+    '_drill_country':           None,
+    '_pending_nav':             None,   # staged tab label for programmatic navigation
+    '_pending_trends_countries': None,  # staged country list for Country Comparison
 }
 for _k, _v in _SS_DEFAULTS.items():
     if _k not in st.session_state:
@@ -109,6 +110,11 @@ if st.session_state['_pending_nav'] is not None:
 if st.session_state.get('_drill_country'):
     st.session_state['country_select'] = st.session_state['_drill_country']
     st.session_state['_drill_country'] = None
+
+# Transfer staged comparison countries BEFORE any widget is instantiated
+if st.session_state.get('_pending_trends_countries'):
+    st.session_state['trends_countries'] = st.session_state['_pending_trends_countries']
+    st.session_state['_pending_trends_countries'] = None
 
 # ── Data loading ──────────────────────────────────────────────────────────────
 @st.cache_data
@@ -314,9 +320,17 @@ if active_idx == 0:
         if (clicked_country
                 and clicked_country in set(stress_df['country'].tolist())
                 and st.session_state['_last_map_click'] != clicked_country):
-            st.session_state['_last_map_click'] = clicked_country
-            st.session_state['_drill_country'] = clicked_country
-            st.session_state['_pending_nav']   = "Country Analysis"
+            # Top 2 countries with highest incoming influence on clicked country
+            top_inf = (
+                edges_df[edges_df['target_country'] == clicked_country]
+                .groupby('source_country')['edge_weight'].sum()
+                .nlargest(2).index.tolist()
+            )
+            comparison_default = [clicked_country] + top_inf
+            st.session_state['_last_map_click']          = clicked_country
+            st.session_state['_drill_country']           = clicked_country
+            st.session_state['_pending_nav']             = "Country Analysis"
+            st.session_state['_pending_trends_countries'] = comparison_default
             st.rerun()
     else:
         st.session_state['_last_map_click'] = None
