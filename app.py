@@ -141,6 +141,12 @@ stress_df, panel_df, edges_df, refs_df = load_data()
 ALL_COUNTRIES = sorted(stress_df['country'].unique().tolist())
 YEAR_MIN = int(stress_df['year'].min())
 YEAR_MAX = int(stress_df['year'].max())
+
+# Initialise comparison default once (after ALL_COUNTRIES is known)
+if 'trends_countries' not in st.session_state:
+    st.session_state['trends_countries'] = ALL_COUNTRIES[:3]
+if 'trends_metrics' not in st.session_state:
+    st.session_state['trends_metrics'] = ["Stress Index"]
 ALL_YEARS = sorted(stress_df['year'].unique())
 
 # ── Page navigation (fully bidirectional — no JS hacks needed) ────────────────
@@ -203,11 +209,9 @@ else:
 # ─── Country Comparison controls (tab 2) ──────────────────────────────────────
 if active_idx == 2:
     selected_countries = st.sidebar.multiselect("Select Countries", ALL_COUNTRIES,
-                                                default=ALL_COUNTRIES[:3],
                                                 key='trends_countries')
     metric_opts        = ["Stress Index"] + [PILLAR_LABELS[p] for p in PILLARS]
     selected_metrics   = st.sidebar.multiselect("Metrics", metric_opts,
-                                                default=["Stress Index"],
                                                 key='trends_metrics')
     t_year_range       = st.sidebar.slider("Year Range", YEAR_MIN, YEAR_MAX,
                                            (YEAR_MIN, YEAR_MAX), key='trends_year')
